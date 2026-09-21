@@ -1,0 +1,44 @@
+# ---------- Секреты ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---------- Виртуальное окружение ----------
+.venv/
+venv/
+env/
+
+# ---------- Django ----------
+*.log
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# ---------- IDE ----------
+.idea/
+.vscode/
+*.swp
+
+# ---------- ОС ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Другое ----------
+.pytest_cache/
+.coverage
+htmlcov/
