@@ -5,7 +5,7 @@
 Django-приложение для трекинга привычек с Telegram-ботом, платными курсами и интеграцией платежей.
 
 ## Стек
-
+\
 - **Backend:** Django 5 + DRF
 - **DB:** PostgreSQL 16
 - **Cache/Broker:** Redis 7
