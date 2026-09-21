@@ -49,3 +49,44 @@ docker compose run --rm web python manage.py test
 └── Dockerfile
 
 
+## 🚀 Деплой
+
+Приложение задеплоено на VPS и доступно по адресу:
+
+- **Прод:** http://<ТВОЙ_IP>/  (Django + админка)
+- **Админка:** http://<ТВОЙ_IP>/admin/
+
+### Автодеплой (GitHub Actions)
+
+Каждый `git push` в ветку `main` автоматически:
+1. Заходит по SSH на сервер
+2. Подтягивает свежий код из GitHub
+3. Пересобирает Docker-образы
+4. Запускает миграции Django
+
+Workflow: `.github/workflows/deploy.yml`
+
+### Инфраструктура
+
+| Сервис | Контейнер | Порт наружу |
+|---|---|---|
+| Nginx (reverse proxy) | systemd | **0.0.0.0:80** |
+| Django (gunicorn, 3 воркера) | habit_web | 127.0.0.1:8000 |
+| PostgreSQL 15 | habit_db | **закрыт** |
+| Redis 7 | habit_redis | **закрыт** |
+| Celery worker (напоминания) | habit_celery | — |
+| Celery beat (планировщик) | habit_celery_beat | — |
+| Telegram-бот (aiogram) | habit_bot | — |
+
+**Статика** отдаётся Nginx напрямую из `staticfiles/`.  
+**Безопасность:** БД и Redis не проброшены наружу — только внутри docker-сети. Django доступен только через Nginx.
+
+### Ручной деплой (если понадобится)
+
+```bash
+ssh deploy@45.90.33.53
+cd ~/habit-tracker
+git fetch origin && git reset --hard origin/main
+docker compose up -d --build
+docker compose exec web python manage.py migrate --noinput
+
