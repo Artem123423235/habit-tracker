@@ -90,3 +90,44 @@ git fetch origin && git reset --hard origin/main
 docker compose up -d --build
 docker compose exec web python manage.py migrate --noinput
 
+
+## 🚀 Деплой на прод
+
+- **Сайт:** http://45.90.33.53/
+- **Админка:** http://45.90.33.53/admin/
+
+### Автодеплой через GitHub Actions
+
+Каждый `git push` в `main`:
+1. Заходит по SSH на VPS (`deploy@45.90.33.53`)
+2. Тянет свежий код (`git fetch && git reset --hard origin/main`)
+3. Пересобирает Docker-образы (`docker compose up -d --build`)
+4. Прогоняет миграции Django
+
+Workflow: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)  
+Секреты: `SSH_HOST`, `SSH_USER`, `SSH_KEY` в Settings → Secrets → Actions.
+
+### Инфраструктура
+
+| Сервис | Контейнер | Доступ извне |
+|---|---|---|
+| Nginx (reverse proxy) | systemd | **0.0.0.0:80** |
+| Django (gunicorn, 3 воркера) | `habit_web` | только `127.0.0.1:8000` |
+| PostgreSQL 15 | `habit_db` | закрыт (внутренняя сеть) |
+| Redis 7 | `habit_redis` | закрыт (внутренняя сеть) |
+| Celery worker | `habit_celery` | — |
+| Celery beat | `habit_celery_beat` | — |
+| Telegram-бот (aiogram 3) | `habit_bot` | — |
+
+БД и Redis **не проброшены наружу** — только внутри docker-сети. Django доступен исключительно через Nginx.  
+Статика (CSS/JS) отдаётся Nginx'ом напрямую из `staticfiles/`.
+
+### Ручной деплой (если понадобится)
+
+```bash
+ssh deploy@45.90.33.53
+cd ~/habit-tracker
+git fetch origin && git reset --hard origin/main
+docker compose up -d --build
+docker compose exec web python manage.py migrate --noinput
+
