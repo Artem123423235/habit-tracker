@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: habit_db
-    restart: always
+    restart: unless-stopped
     env_file: .env
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -10,8 +10,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -21,19 +19,23 @@ services:
   redis:
     image: redis:7-alpine
     container_name: habit_redis
-    restart: always
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
     container_name: habit_web
-    restart: always
+    restart: unless-stopped
     command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60 --access-logfile - --error-logfile -"
     volumes:
       - .:/app
     ports:
@@ -43,32 +45,49 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
   celery:
     build: .
     container_name: habit_celery
-    restart: always
+    restart: unless-stopped
     command: celery -A config worker -l info
     volumes:
       - .:/app
     env_file: .env
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   celery-beat:
     build: .
     container_name: habit_celery_beat
-    restart: always
+    restart: unless-stopped
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
     env_file: .env
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
+  bot:
+    build: .
+    container_name: habit_bot
+    restart: unless-stopped
+    command: python manage.py runbot
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
