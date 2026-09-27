@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+
 from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer
 

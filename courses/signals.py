@@ -1,11 +1,11 @@
 from datetime import timedelta
 
+from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
-from django.core.mail import send_mail
 
-from .models import Lesson, Course, Subscription
+from .models import Lesson, Subscription
 
 
 @receiver(post_save, sender=Lesson)
@@ -22,7 +22,7 @@ def notify_subscribers_about_lesson_update(sender, instance, **kwargs):
         if emails:
             send_mail(
                 subject=f'Курс "{course.title}" обновлён',
-                message=f'В курсе появились новые материалы. Проверьте обновления!',
+                message='В курсе появились новые материалы. Проверьте обновления!',
                 from_email=None,  # использует DEFAULT_FROM_EMAIL
                 recipient_list=emails,
             )
